@@ -9,7 +9,7 @@ await Promise.all([
     bundle: true,
     external: ['vscode'],
     sourcemap: true,
-    platform: 'browser',
+    platform: 'node',
     format: 'cjs',
     logLevel: 'info'
   }),
