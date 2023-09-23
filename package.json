@@ -1,28 +1,22 @@
 {
-  "name": "vscode-ext-run-wasm",
+  "name": "test-vscode-ext-serve-run-wasm",
   "version": "0.1.3",
   "displayName": "Experimental - Run wasm",
   "description": "Run wasm on VS Code Web Shell",
-  "keywords": [
-    "wasm",
-    "wasi",
-    "webshell"
-  ],
+  "keywords": ["wasm", "wasi", "webshell"],
   "author": "hankei6km <hankei6km@gmail.com> (https://github.com/hankei6km)",
   "publisher": "hankei6km",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hankei6km/vscode-ext-run-wasm"
+    "url": "https://github.com/hankei6km/test-vscode-ext-serve-run-wasm"
   },
   "bugs": {
-    "url": "https://github.com/hankei6km/vscode-ext-run-wasm/issues"
+    "url": "https://github.com/hankei6km/test-vscode-ext-serve-run-wasm/issues"
   },
   "engines": {
     "vscode": "^1.81.0"
   },
-  "categories": [
-    "Other"
-  ],
+  "categories": ["Other"],
   "license": "MIT",
   "main": "./out/extension.js",
   "browser": "./out/extension.js",
@@ -52,10 +46,7 @@
     "serve": "serve --cors -l 5000 --ssl-cert $HOME/certs/localhost.pem --ssl-key $HOME/certs/localhost-key.pem -c ./configs/serve.json .",
     "serve:http": "serve --cors -l 5000"
   },
-  "extensionDependencies": [
-    "ms-vscode.wasm-wasi-core",
-    "ms-vscode.webshell"
-  ],
+  "extensionDependencies": ["ms-vscode.wasm-wasi-core", "ms-vscode.webshell"],
   "dependencies": {
     "@vscode/wasm-wasi": "^0.13.0-pre.1",
     "minimist": "^1.2.8"

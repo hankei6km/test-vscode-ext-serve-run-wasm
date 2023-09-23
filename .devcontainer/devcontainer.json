@@ -1,5 +1,5 @@
 {
-  "name": "vscode-wasm-wasi-ext",
+  "name": "test-vscode-ext-serve-run-wasm",
   "dockerFile": "Dockerfile",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
@@ -15,9 +15,7 @@
   "remoteUser": "vscode",
   "remoteEnv": {},
   "postStartCommand": [],
-  // rust は hello.wasm をビルドするときだ必要。
-  // "postCreateCommand": "rustup target add wasm32-wasi && npm ci && npx playwright install-deps",
-  "postCreateCommand": "npm ci && npx playwright install --with-deps",
+  "postCreateCommand": "rustup target add wasm32-wasi && npm ci && npx playwright install --with-deps",
   "customizations": {
     "vscode": {
       "extensions": [
