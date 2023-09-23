@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
+    "rootDir": "./extension",
     "skipLibCheck": true,
     "lib": ["es2020", "webworker"],
     "types": ["node", "vscode", "@types/mocha"],

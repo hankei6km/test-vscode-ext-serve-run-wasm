@@ -1,7 +1,7 @@
 import * as esbuild from 'esbuild'
 
 await esbuild.build({
-  entryPoints: ['src/extension.ts'],
+  entryPoints: ['extension/extension.ts'],
   outfile: 'out/extension.js',
   bundle: true,
   external: ['vscode'],
