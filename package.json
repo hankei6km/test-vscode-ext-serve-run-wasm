@@ -41,7 +41,7 @@
     "compile": "node esbuild.config.mjs",
     "test": "npm run test:unit && npm run test:electron",
     "pretest": "rimraf tmp && mkdir tmp && cp wasm/bin/hello.wasm tmp/hello.wasm",
-    "test:unit": "mocha --require ts-node/register --require source-map-support/register --watch-extensions ts --ui tdd extension/test/unit/**/*.test.ts",
+    "test:unit": "mocha --require ts-node/register --require source-map-support/register --watch-extensions ts --ui tdd src/extension/test/unit/**/*.test.ts",
     "test:electron": "xvfb-run node ./out/test/runTest.js",
     "pretest:electron": "node esbuild.test-electron.config.mjs",
     "lint:type-check": "tsc --noEmit",

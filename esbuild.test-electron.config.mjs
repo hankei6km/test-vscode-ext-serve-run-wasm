@@ -4,7 +4,7 @@ import * as esbuild from 'esbuild'
 
 await Promise.all([
   esbuild.build({
-    entryPoints: ['extension/extension.ts'],
+    entryPoints: ['src/extension/extension.ts'],
     outfile: 'out/extension.js',
     bundle: true,
     external: ['vscode'],
@@ -16,12 +16,12 @@ await Promise.all([
   (async () => {
     // `extension/test/suite/*.ts` の代わり。`extension/test/suite/**/*.test.ts` にはならない。
     const suite = fs
-      .readdirSync(path.join('extension', 'test', 'suite'))
-      .map((f) => path.join('extension', 'test', 'suite', f))
+      .readdirSync(path.join('src/extension', 'test', 'suite'))
+      .map((f) => path.join('src/extension', 'test', 'suite', f))
       .filter((f) => f.endsWith('.ts') && fs.statSync(f).isFile())
     await esbuild.build({
-      entryPoints: ['extension/test/runTest.ts', ...suite],
-      sourceRoot: 'extension',
+      entryPoints: ['src/extension/test/runTest.ts', ...suite],
+      sourceRoot: 'src/extension',
       //outbase: 'out/test',
       outdir: 'out/test',
       bundle: false,
