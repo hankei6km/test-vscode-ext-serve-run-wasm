@@ -66,7 +66,7 @@ suite('environment vriables in teminal', () => {
     terminal.sendText('exit')
     await terminalClosedPromise
 
-    assert.ok(envText.includes('TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH'))
+    assert.match(envText, /`TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH=/)
   })
 })
 
