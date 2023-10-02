@@ -2,9 +2,9 @@ import { Disposable, ExtensionContext, Uri, window, workspace } from 'vscode'
 import {
   Wasm,
   ProcessOptions,
-  RootFileSystem,
-  Stdio,
-  WasmProcess
+  // RootFileSystem,
+  Stdio
+  // WasmProcess
 } from '@vscode/wasm-wasi'
 import * as http from 'node:http'
 import * as fs from 'node:fs'
@@ -25,7 +25,7 @@ export class IpcServer implements Disposable {
     this._ipcHandlePath = ipcHandlePath
     this.server = http.createServer()
     this.server.listen(this._ipcHandlePath.path)
-    this.server.on('request', async (req, res) => {
+    this.server.on('request', async (_req, res) => {
       // run wasm
       const name = 'test1'
       //const pty = wasm.createPseudoterminal()

@@ -68,17 +68,6 @@ suite('environment vriables in teminal', () => {
 
 suite('http servr for run wasm', () => {
   test('run wasm via http server', async () => {
-    // capture new text document is opened.
-    const documentOpenedPromise = new Promise<vscode.TextDocument>(
-      (resolve) => {
-        const disposable = vscode.workspace.onDidOpenTextDocument(
-          (document) => {
-            resolve(document)
-            disposable.dispose()
-          }
-        )
-      }
-    )
     // wait new terminal is opened
     const terminalOpenedPromise = new Promise<vscode.Terminal | undefined>(
       (resolve) => {
