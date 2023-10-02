@@ -37,7 +37,7 @@ suite('environment vriables in teminal', () => {
 
     // open terminal
     await vscode.commands.executeCommand('workbench.action.terminal.new')
-    await terminalOpenedPromise
+    const terminal = await terminalOpenedPromise
     // await new Promise((resolve) => setTimeout(resolve, 1000))
 
     // execute "terminal.showEnvironmentContributions"
@@ -59,7 +59,9 @@ suite('environment vriables in teminal', () => {
       }
     )
     // close terminal.
-    await vscode.commands.executeCommand('workbench.action.terminal.kill')
+    //await vscode.commands.executeCommand('workbench.action.terminal.kill')
+    if (terminal === undefined) return
+    terminal.sendText('exit')
     await terminalClosedPromise
 
     assert.ok(envText.includes('TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH'))
