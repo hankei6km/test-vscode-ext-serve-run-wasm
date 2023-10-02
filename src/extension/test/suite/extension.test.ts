@@ -38,7 +38,9 @@ suite('environment vriables in teminal', () => {
     // open terminal
     await vscode.commands.executeCommand('workbench.action.terminal.new')
     const terminal = await terminalOpenedPromise
-    // await new Promise((resolve) => setTimeout(resolve, 1000))
+    // 安定するまで待つ(タイミングによってはテストが失敗する)
+    // TODO: 正しい待ち方を調べる
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
     // execute "terminal.showEnvironmentContributions"
     await vscode.commands.executeCommand(
@@ -86,7 +88,9 @@ suite('http servr for run wasm', () => {
     // open terminal
     await vscode.commands.executeCommand('workbench.action.terminal.new')
     const terminal = await terminalOpenedPromise
-    // await new Promise((resolve) => setTimeout(resolve, 1000))
+    // 安定するまで待つ(タイミングによってはテストが失敗する)
+    // TODO: 正しい待ち方を調べる
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
     // wait terminal is closed
     const terminalClosedPromise = new Promise<vscode.Terminal | undefined>(
