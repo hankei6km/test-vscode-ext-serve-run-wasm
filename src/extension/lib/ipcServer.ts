@@ -70,9 +70,11 @@ export class IpcServer implements Disposable {
     await handler.handle({
       cwd: workspace.workspaceFolders?.[0].uri.fsPath ?? '',
       wasmBits: bits,
-      namen: args.cmdName,
-      args: args.cmdArgs,
-      pipeOut
+      args,
+      pipeOut,
+      log: (msg: string) => {
+        res.write(msg)
+      }
     })
 
     res.end()

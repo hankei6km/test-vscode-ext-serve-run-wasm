@@ -104,26 +104,49 @@ suite('http servr for run wasm', () => {
 
     // input "curl --unix-socket "${TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH}"  http://localhost/ > test_out/run_out.txt && exit" to terminal
     if (terminal === undefined) return
+
     terminal.sendText(
       'curl --unix-socket "${TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH}"' +
         ` http://localhost/run?args=${encodeURIComponent(
           '["wasm/bin/workspace.wasm","echo","test","123"]'
         )}` +
-        '> test_out/run_out.txt && exit'
+        '> test_out/run_out.txt'
+    )
+
+    terminal.sendText(
+      'curl --unix-socket "${TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH}"' +
+        ` http://localhost/run?args=${encodeURIComponent(
+          '["--print-elapsed-time","--","wasm/bin/workspace.wasm","echo","test","123"]'
+        )}` +
+        '> test_out/run_elapsed.txt && exit'
     )
 
     // wait terminal is closed
     await terminalClosedPromise
 
     // read test_out/run_out.txt and check the content
-    const filename = vscode.Uri.joinPath(
-      vscode.workspace.workspaceFolders![0].uri,
-      'test_out',
-      'run_out.txt'
-    )
-    assert.equal(
-      (await vscode.workspace.fs.readFile(filename)).toString(),
-      'test 123 \n'
-    )
+    {
+      const filename = vscode.Uri.joinPath(
+        vscode.workspace.workspaceFolders![0].uri,
+        'test_out',
+        'run_out.txt'
+      )
+      assert.equal(
+        (await vscode.workspace.fs.readFile(filename)).toString(),
+        'test 123 \n'
+      )
+    }
+    {
+      // read test_out/run_elapsed.txt and check the content
+      const filename = vscode.Uri.joinPath(
+        vscode.workspace.workspaceFolders![0].uri,
+        'test_out',
+        'run_elapsed.txt'
+      )
+      assert.match(
+        (await vscode.workspace.fs.readFile(filename)).toString(),
+        /test 123 \n\d+\n/
+      )
+    }
   })
 })
