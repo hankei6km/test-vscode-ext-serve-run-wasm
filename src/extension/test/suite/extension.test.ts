@@ -110,7 +110,7 @@ suite('http servr for run wasm', () => {
         ` http://localhost/run?args=${encodeURIComponent(
           '["wasm/bin/workspace.wasm","echo","test","123"]'
         )}` +
-        '> test_out/run_out.txt'
+        ' > test_out/run_out.txt'
     )
 
     terminal.sendText(
@@ -118,7 +118,7 @@ suite('http servr for run wasm', () => {
         ` http://localhost/run?args=${encodeURIComponent(
           '["--print-elapsed-time","--","wasm/bin/workspace.wasm","echo","test","123"]'
         )}` +
-        '> test_out/run_elapsed.txt && exit'
+        ' > test_out/run_elapsed.txt && exit'
     )
 
     // wait terminal is closed
