@@ -8,7 +8,6 @@ import {
 } from '@vscode/wasm-wasi'
 import { IpcHandler } from './ipcServer'
 import { ArgsForRun, memoryDescriptor } from './args'
-import { log } from 'console'
 
 type Payload = {
   cwd: string
