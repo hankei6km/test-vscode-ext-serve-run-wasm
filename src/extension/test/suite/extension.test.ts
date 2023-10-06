@@ -105,7 +105,11 @@ suite('http servr for run wasm', () => {
     // input "curl --unix-socket "${TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH}"  http://localhost/ > test_out/run_out.txt && exit" to terminal
     if (terminal === undefined) return
     terminal.sendText(
-      'curl --unix-socket "${TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH}"  http://localhost/ > test_out/run_out.txt && exit'
+      'curl --unix-socket "${TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH}"' +
+        ` http://localhost/run?args=${encodeURIComponent(
+          '["wasm/bin/workspace.wasm","echo","test","123"]'
+        )}` +
+        '> test_out/run_out.txt && exit'
     )
 
     // wait terminal is closed
