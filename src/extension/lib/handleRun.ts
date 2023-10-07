@@ -9,7 +9,7 @@ import {
 import { IpcHandler } from './ipcServer'
 import { ArgsForRun, memoryDescriptor } from './args'
 
-type Payload = {
+type PayloadRun = {
   cwd: string
   wasmBits: Uint8Array
   args: ArgsForRun
@@ -18,12 +18,13 @@ type Payload = {
   pipeErr?: Readable
   log: (msg: string) => void
 }
+
 export class HandleRun implements IpcHandler {
   private wasm: Wasm
   constructor(wasm: Wasm) {
     this.wasm = wasm
   }
-  async handle(request: Payload): Promise<any> {
+  async handle(request: PayloadRun): Promise<any> {
     // run wasm
     //const pty = wasm.createPseudoterminal()
     //const terminal = window.createTerminal({
