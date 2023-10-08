@@ -1,91 +1,96 @@
 import { Disposable, ExtensionContext, Uri, window, workspace } from 'vscode'
 import {
-  Wasm,
-  ProcessOptions,
+  Wasm
+  // ProcessOptions,
   // RootFileSystem,
-  Stdio
+  // Stdio
   // WasmProcess
 } from '@vscode/wasm-wasi'
 import * as http from 'node:http'
 import * as fs from 'node:fs'
+import { PassThrough } from 'node:stream'
 
 import { IpcHandlePath } from './ipcHandlePath.js'
+import { HandleRun } from './handleRun.js'
+import { getRouteAndArgs } from './query.js'
 
 // https://stackoverflow.com/questions/70449525/get-vscode-instance-id-from-embedded-terminal
 // https://github.com/microsoft/vscode/blob/8635a5effdfeea74fc92b6b9cda71168adf75726/extensions/git/src/ipc/ipcServer.ts
 
+export interface IpcHandler {
+  handle(request: any): Promise<any>
+}
+
+export async function getWasmBits(
+  workspaceFoler: Uri,
+  filename: string
+): Promise<Uint8Array> {
+  return await workspace.fs.readFile(Uri.joinPath(workspaceFoler, filename))
+}
+
 export class IpcServer implements Disposable {
   private server: http.Server
-  private _ipcHandlePath: IpcHandlePath
+  private _handler: http.RequestListener
+  private context: ExtensionContext
+  private ipcHandlePath: IpcHandlePath
+  private wasm: Wasm
+  private handlers: Map<string, IpcHandler> = new Map()
   constructor(
     context: ExtensionContext,
     ipcHandlePath: IpcHandlePath,
     wasm: Wasm
   ) {
-    this._ipcHandlePath = ipcHandlePath
+    this.context = context
+    this.ipcHandlePath = ipcHandlePath
+    this.wasm = wasm
+    this.handlers.set('/run', new HandleRun(this.wasm))
+
     this.server = http.createServer()
-    this.server.listen(this._ipcHandlePath.path)
-    this.server.on('request', async (_req, res) => {
-      // run wasm
-      const name = 'test1'
-      //const pty = wasm.createPseudoterminal()
-      //const terminal = window.createTerminal({
-      //  name,
-      //  pty,
-      //  isTransient: true
-      //})
-      //terminal.show(true)
-      const channel = window.createOutputChannel('Test1 Trace', {
-        log: true
-      })
-      channel.info(`Running ${name}...`)
-      //const pipeIn = wasm.createWritable()
-      const pipeOut = wasm.createReadable()
-      pipeOut.onData((data) => {
-        console.log(data.toString())
-        res.write(data)
-      })
-      // pty の扱いどうする？
-      // (そもそも wasi で pty ってどうなってるの？)
-      const stdio: Stdio = {
-        out: { kind: 'pipeOut', pipe: pipeOut }
-      }
-      const options: ProcessOptions = {
-        stdio,
-        // /workspace のみがされたマウントされた状態になっている
-        // オプションなどで任意のディレクトリをマウントすることも考える？
-        mountPoints: [{ kind: 'workspaceFolder' }],
-        args: ['echo', 'test', '123'],
-        //args: ['err', 'abc', '123'],
-        trace: true
-      }
-      try {
-        // 任意のファイル名を渡す応報はどうする？
-        // workspace のディレクトリを取得する方法はあったはずだが、複数 workspace のときは？
-        // workspace の外側のファイルの場合は？
-        // とりあえず、固定の .wasm ファイルを読み込むようにしておく。
-        // ソース: https://codesandbox.io/p/sandbox/test-vscode-ext-ipc-check-6kkgc4
-        const filename = Uri.joinPath(
-          context.extensionUri,
-          'wasm',
-          'bin',
-          'workspace.wasm'
-        )
-        const bits = await workspace.fs.readFile(filename)
-        const module = await WebAssembly.compile(bits)
-        const process = await wasm.createProcess('test1', module, options)
-        await process.run()
-        // TODO: pipe 用のストリームを開放(おそらく開放されない)
-      } catch (err: any) {
-        //void pty.write(`Launching python failed: ${err.toString()}`)
-      }
-      res.end()
+    this.server.listen(this.ipcHandlePath.path)
+    this._handler = this.handler.bind(this)
+    this.server.on('request', this._handler)
+  }
+  async handler(req: http.IncomingMessage, res: http.ServerResponse) {
+    const name = 'test1'
+    const channel = window.createOutputChannel('Test1 Trace', {
+      log: true
     })
+    channel.info(`Running ${name}...`)
+    const pipeOutErrHandler = (data: any) => {
+      res.write(data)
+    }
+    const pipeOut = new PassThrough()
+    pipeOut.on('data', pipeOutErrHandler)
+    pipeOut.on('end', () => {
+      pipeOut.off('data', pipeOutErrHandler)
+    })
+    const pipeErr = new PassThrough()
+    pipeErr.on('data', pipeOutErrHandler)
+    pipeErr.on('end', () => {
+      pipeErr.off('data', pipeOutErrHandler)
+    })
+    const { route, args } = getRouteAndArgs(req.url || '')
+    const bits = await getWasmBits(this.context.extensionUri, args.cmdPath)
+
+    const handler = this.handlers.get(route)
+    if (!handler) {
+      console.warn(`IPC handler for ${req.url} not found`)
+      return
+    }
+    await handler.handle({
+      cwd: workspace.workspaceFolders?.[0].uri.fsPath ?? '',
+      wasmBits: bits,
+      args,
+      pipeOut,
+      pipeErr
+    }),
+      res.end()
   }
   dispose() {
+    this.server.off('request', this._handler)
     this.server.close()
-    if (this._ipcHandlePath && process.platform !== 'win32') {
-      fs.unlinkSync(this._ipcHandlePath.path)
+    if (this.ipcHandlePath && process.platform !== 'win32') {
+      fs.unlinkSync(this.ipcHandlePath.path)
     }
   }
 }
