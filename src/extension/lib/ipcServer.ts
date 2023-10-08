@@ -8,6 +8,7 @@ import {
 } from '@vscode/wasm-wasi'
 import * as http from 'node:http'
 import * as fs from 'node:fs'
+import { PassThrough } from 'node:stream'
 
 import { IpcHandlePath } from './ipcHandlePath.js'
 import { HandleRun } from './handleRun.js'
@@ -41,8 +42,8 @@ export class IpcServer implements Disposable {
   ) {
     this.context = context
     this.ipcHandlePath = ipcHandlePath
-    this.handlers.set('/run', new HandleRun(wasm))
     this.wasm = wasm
+    this.handlers.set('/run', new HandleRun(this.wasm))
 
     this.server = http.createServer()
     this.server.listen(this.ipcHandlePath.path)
@@ -55,9 +56,18 @@ export class IpcServer implements Disposable {
       log: true
     })
     channel.info(`Running ${name}...`)
-    const pipeOut = this.wasm.createReadable()
-    pipeOut.onData((data) => {
+    const pipeOutErrHandler = (data: any) => {
       res.write(data)
+    }
+    const pipeOut = new PassThrough()
+    pipeOut.on('data', pipeOutErrHandler)
+    pipeOut.on('end', () => {
+      pipeOut.off('data', pipeOutErrHandler)
+    })
+    const pipeErr = new PassThrough()
+    pipeErr.on('data', pipeOutErrHandler)
+    pipeErr.on('end', () => {
+      pipeErr.off('data', pipeOutErrHandler)
     })
     const { route, args } = getRouteAndArgs(req.url || '')
     const bits = await getWasmBits(this.context.extensionUri, args.cmdPath)
@@ -72,12 +82,9 @@ export class IpcServer implements Disposable {
       wasmBits: bits,
       args,
       pipeOut,
-      log: (msg: string) => {
-        res.write(msg)
-      }
-    })
-
-    res.end()
+      pipeErr
+    }),
+      res.end()
   }
   dispose() {
     this.server.off('request', this._handler)
