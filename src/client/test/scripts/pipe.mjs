@@ -1,24 +1,24 @@
-import * as http from "node:http";
-import { dataToNumberArray, getRouteAndArgs } from "./util.mjs";
+import * as http from 'node:http'
+import { dataToNumberArray, getRouteAndArgs } from './util.mjs'
 
-const ipcHandlePath = process.env["IPC_HANDLE_PATH"];
+const ipcHandlePath = process.env['TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH']
 
-const server = http.createServer();
+const server = http.createServer()
 
-server.once("request", async (req, res) => {
-  const r = getRouteAndArgs(req.url);
-  if (req.method === "POST") {
+server.once('request', async (req, res) => {
+  const r = getRouteAndArgs(req.url)
+  if (req.method === 'POST') {
     // handle data from request
     for await (const chunk of req) {
       //  chunk to UInt8Array
-      const s = JSON.stringify({ id: 2, data: dataToNumberArray(chunk) });
-      await new Promise((resolve) => res.write(s, resolve));
+      const s = JSON.stringify({ kind: 'out', data: dataToNumberArray(chunk) })
+      await new Promise((resolve) => res.write(s, resolve))
     }
-    res.end();
+    res.end()
   } else {
-    res.end("only POST method is allowed");
+    res.end('only POST method is allowed')
   }
-  server.close();
-});
+  server.close()
+})
 
-server.listen(ipcHandlePath || 3000);
+server.listen(ipcHandlePath || 3000)

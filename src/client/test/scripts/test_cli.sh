@@ -7,7 +7,7 @@ trap "rm -rf ${TEMP_DIR}" EXIT
 OUT_FILE="${TEMP_DIR}/out"
 ERR_FILE="${TEMP_DIR}/err"
 
-export IPC_HANDLE_PATH="${TEMP_DIR}/ipc.sock"
+export TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH="${TEMP_DIR}/ipc.sock"
 # TODO: リクエストが実行される前にテストが落ちるとサーバーが稼働したままになる.後処理を検討.
 node src/client/test/scripts/srv.mjs &
 
