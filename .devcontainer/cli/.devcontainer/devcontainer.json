@@ -3,6 +3,7 @@
   // "image": "ghcr.io/hankei6km/h6-dev-containers:cli_rust",
   "dockerFile": "Dockerfile",
   "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"],
+  "postCreateCommand": "rustup target add wasm32-wasi",
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],

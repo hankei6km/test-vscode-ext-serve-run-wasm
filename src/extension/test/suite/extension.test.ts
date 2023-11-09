@@ -129,7 +129,7 @@ suite('http servr for run wasm', () => {
     terminal.sendText(
       'curl --unix-socket "${TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH}"' +
         ` http://localhost/run?args=${encodeURIComponent(
-          '["wasm/bin/workspace.wasm","echo","test","123"]'
+          '["wasm/bin/chk1.wasm","echo","test","123"]'
         )}` +
         ' > test_out/run_out.txt'
     )
@@ -137,7 +137,7 @@ suite('http servr for run wasm', () => {
     terminal.sendText(
       'curl --unix-socket "${TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH}"' +
         ` http://localhost/run?args=${encodeURIComponent(
-          '["wasm/bin/workspace.wasm","err","TEST","456"]'
+          '["wasm/bin/chk1.wasm","err","TEST","456"]'
         )}` +
         ' > test_out/run_err.txt'
     )
@@ -145,7 +145,7 @@ suite('http servr for run wasm', () => {
     terminal.sendText(
       'curl --unix-socket "${TEST_VSCODE_EXT_SERVE_RUN_WASM_IPC_PATH}"' +
         ` http://localhost/run?args=${encodeURIComponent(
-          '["--print-elapsed-time","--","wasm/bin/workspace.wasm","echo","test","123"]'
+          '["--print-elapsed-time","--","wasm/bin/chk1.wasm","echo","test","123"]'
         )}` +
         ' > test_out/run_elapsed.txt && exit'
     )

@@ -47,6 +47,31 @@ jobs:
           npm ci
           npx playwright install --with-deps
 
+      - name: Cache artifacts for wasm
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build .wasm to test
+        # ビルド環境をもう少し整理する必要がある.
+        # npm script も if が増えてやりにくくなっている.
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/hankei6km/h6-dev-containers
+          imageTag: 2022-12-01-main-cli_rust
+          push: never
+          subFolder: .devcontainer/cli
+          # パスの指定方法はあとで考える
+          runCmd: |
+            cd ../../
+            cargo build --manifest-path wasm/Cargo.toml --target wasm32-wasi
+
       - name: Run tests
         run: |
           npm run lint:type-check
