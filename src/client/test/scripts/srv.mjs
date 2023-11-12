@@ -23,6 +23,9 @@ server.once('request', async (req, res) => {
     await new Promise((resolve) => res.write(s2.slice(0, 3), resolve))
     await new Promise((resolve) => res.write(s2.slice(3), resolve))
 
+    await new Promise((resolve) =>
+      res.write(JSON.stringify({ kind: 'status', data: [0] }), resolve)
+    )
     res.end()
   } else {
     res.end('only POST method is allowed')

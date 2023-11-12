@@ -14,6 +14,9 @@ server.once('request', async (req, res) => {
       const s = JSON.stringify({ kind: 'out', data: dataToNumberArray(chunk) })
       await new Promise((resolve) => res.write(s, resolve))
     }
+    await new Promise((resolve) =>
+      res.write(JSON.stringify({ kind: 'status', data: [0] }), resolve)
+    )
     res.end()
   } else {
     res.end('only POST method is allowed')
