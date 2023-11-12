@@ -70,6 +70,7 @@ jobs:
           # パスの指定方法はあとで考える
           runCmd: |
             cd ../../
+            cargo build --release
             cargo build --manifest-path wasm/Cargo.toml --target wasm32-wasi
 
       - name: Run tests

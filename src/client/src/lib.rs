@@ -13,7 +13,8 @@ async fn output<T: AsyncWriteExt, U: AsyncWriteExt>(
     stream: impl Stream<Item = Value>,
     writer_out: BufWriter<T>,
     writer_err: BufWriter<U>,
-) {
+) -> Result<u8, Box<dyn std::error::Error>> {
+    let mut exti_stauts = 1;
     pin_mut!(stream);
     pin_mut!(writer_out);
     pin_mut!(writer_err);
@@ -21,14 +22,18 @@ async fn output<T: AsyncWriteExt, U: AsyncWriteExt>(
         // get data(i64 array) as &[u8]
         let data = value["data"].as_array().unwrap();
         let data: Vec<u8> = data.iter().map(|v| v.as_i64().unwrap() as u8).collect();
-        match &value["kind"].as_str().unwrap()  {
+        match &value["kind"].as_str().unwrap() {
             &"out" => writer_out.write_all(&data).await.unwrap(),
-            // &"err" => writer_err.write_all(&data).await.unwrap(),
-            _=> writer_err.write_all(&data).await.unwrap(),
+            &"err" => writer_err.write_all(&data).await.unwrap(),
+            _ => {
+                exti_stauts = data[0];
+                //break
+            }
         }
     }
     writer_out.flush().await.unwrap();
     writer_err.flush().await.unwrap();
+    Ok(exti_stauts)
 }
 
 #[cfg(test)]
@@ -38,28 +43,59 @@ mod tests {
     use crate::{ndjson::ndjson, output};
 
     #[tokio::test]
-    async fn test_output() {
-    let response = Response::new(Body::from(
-        "{\"kind\": \"err\", \"data\": [65, 108, 105, 99, 101]}
+    async fn test_output_normal() {
+        let response = Response::new(Body::from(
+            "{\"kind\": \"err\", \"data\": [65, 108, 105, 99, 101]}
         {\"kind\": \"out\", \"data\": [66, 111, 98]}
         {\"kind\": \"err\", \"data\": [67, 104, 97, 114, 108, 105, 101]}
         {\"kind\": \"out\", \"data\": [68, 97, 118, 101]}
         {\"kind\": \"err\", \"data\": [69, 118, 101]}
+        {\"kind\": \"status\", \"data\": [0]}
         ",
-    ));
+        ));
         let stream = ndjson(response);
 
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
-        output(
+        let exit_status = output(
             stream,
             tokio::io::BufWriter::new(&mut stdout),
             tokio::io::BufWriter::new(&mut stderr),
         )
-        .await;
+        .await
+        .unwrap();
 
         assert_eq!(stdout, b"BobDave");
         assert_eq!(stderr, b"AliceCharlieEve");
+        assert_eq!(exit_status, 0);
+    }
+
+    #[tokio::test]
+    async fn test_output_abend() {
+        let response = Response::new(Body::from(
+            "{\"kind\": \"err\", \"data\": [65, 108, 105, 99, 101]}
+        {\"kind\": \"out\", \"data\": [66, 111, 98]}
+        {\"kind\": \"err\", \"data\": [67, 104, 97, 114, 108, 105, 101]}
+        {\"kind\": \"out\", \"data\": [68, 97, 118, 101]}
+        {\"kind\": \"err\", \"data\": [69, 118, 101]}
+        {\"kind\": \"status\", \"data\": [2]}
+        ",
+        ));
+        let stream = ndjson(response);
+
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let exit_status = output(
+            stream,
+            tokio::io::BufWriter::new(&mut stdout),
+            tokio::io::BufWriter::new(&mut stderr),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(stdout, b"BobDave");
+        assert_eq!(stderr, b"AliceCharlieEve");
+        assert_eq!(exit_status, 2);
     }
 }
 
@@ -130,25 +166,18 @@ mod test_build_url {
 }
 
 pub mod run {
-    use hyper::{Body, Client, Method, Request, Uri};
-    use hyperlocal::UnixClientExt;
-    use is_terminal::IsTerminal;
-    use tokio::io::{stdin, BufReader, BufWriter};
-    use tokio::runtime::Runtime;
-    use tokio_util::io::ReaderStream;
-
     use crate::ndjson::ndjson;
     use crate::{build_uri_uds, output};
+    use hyper::{Body, Client, Method, Request, Uri};
+    use hyperlocal::UnixClientExt;
+    use tokio::io::{stdin, BufReader, BufWriter};
+    use tokio_util::io::ReaderStream;
 
     pub struct RunArgs {
         pub memory_initial: u32,
         pub memory_maximum: u32,
         pub memory_shared: bool,
         pub files: Vec<String>,
-    }
-    enum MyEnum {
-        Empty,
-        Body(Body),
     }
 
     pub struct Run {
@@ -163,65 +192,29 @@ pub mod run {
                 url: build_uri_uds(run_args, socket.as_str()),
             }
         }
-        pub fn run(&self) {
-            let rt = Runtime::new().unwrap();
-            rt.block_on(async move {
-                let client = Client::unix();
+        pub async fn run(&self) -> Result<u8, Box<dyn std::error::Error>> {
+            let client = Client::unix();
 
-                // mkae req with  POST method,
-                // path stdin as reader to body.
-                let r = Request::builder()
-                    .method(Method::POST)
-                    .uri(self.url.clone());
-                // ターミナルである場合は empty にする。
-                // 実際はどうする？
-                let body = if std::io::stdin().is_terminal() {
-                    MyEnum::Empty
-                } else {
-                    MyEnum::Body({
-                        let reader = BufReader::new(stdin());
-                        let stream = ReaderStream::new(reader);
-                        Body::wrap_stream(stream)
-                    })
-                };
-                let req = match body {
-                    MyEnum::Empty => r.body(Body::empty()).unwrap(),
-                    MyEnum::Body(stream) => r.body(Body::wrap_stream(stream)).unwrap(),
-                };
+            let reader = BufReader::new(stdin());
+            let stream = ReaderStream::new(reader);
+            let req = Request::builder()
+                .method(Method::POST)
+                .uri(self.url.clone())
+                .body(Body::wrap_stream(stream))
+                .unwrap();
 
-                //r.body(Body::wrap_stream(stream)).unwrap()
+            let response = client.request(req).await.unwrap();
 
-                let response = client.request(req).await.unwrap();
+            let n = ndjson(response);
+            let exit_status = output(
+                n,
+                BufWriter::new(tokio::io::stdout()),
+                BufWriter::new(tokio::io::stderr()),
+            )
+            .await
+            .unwrap();
 
-                let n = ndjson(response);
-                output(
-                    n,
-                    BufWriter::new(tokio::io::stdout()),
-                    BufWriter::new(tokio::io::stderr()),
-                )
-                .await;
-                //pin_mut!(n);
-                //while let Some(value) = n.next().await {
-                //    io::stdout()
-                //        .write_all(format!("{}\n", value["data"]).as_bytes())
-                //        .await
-                //        .unwrap();
-                //}
-
-                //tokio::join!(f1, f2);
-            });
-
-            // let response = reqwest::blocking::get(self.url.as_str()).unwrap();
-
-            // // println!("Status: {}", response.status());
-
-            // let reader = BufReader::new(response);
-            // let stream = Deserializer::from_reader(reader).into_iter::<Value>();
-            // output(
-            //     stream,
-            //     BufWriter::new(std::io::stdout()),
-            //     BufWriter::new(std::io::stderr()),
-            // );
+            Ok(exit_status)
         }
     }
 }

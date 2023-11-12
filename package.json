@@ -38,7 +38,7 @@
     "pretest": "rimraf tmp && mkdir -p tmp/test_out && rimraf wasm/bin && mkdir wasm/bin && if test \"${GITHUB_ACTIONS}\" = true; then cp wasm/target/wasm32-wasi/debug/chk1.wasm wasm/bin/chk1.wasm; fi",
     "test:unit": "mocha --require ts-node/register --require source-map-support/register --watch-extensions ts --ui tdd src/extension/test/unit/**/*.test.ts",
     "test:electron": "xvfb-run node ./out/test/runTest.js",
-    "pretest:electron": "node esbuild.test-electron.config.mjs && if test \"${GITHUB_ACTIONS}\" != true; then cargo build --manifest-path wasm/Cargo.toml --target wasm32-wasi && cp wasm/target/wasm32-wasi/debug/chk1.wasm wasm/bin/chk1.wasm; fi",
+    "pretest:electron": "node esbuild.test-electron.config.mjs && if test \"${GITHUB_ACTIONS}\" != true; then cargo build --release && cargo build --manifest-path wasm/Cargo.toml --target wasm32-wasi && cp wasm/target/wasm32-wasi/debug/chk1.wasm wasm/bin/chk1.wasm; fi",
     "lint:type-check": "tsc --noEmit",
     "clean": "rimraf out/"
   },

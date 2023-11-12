@@ -42,6 +42,7 @@ fn main() {
                 }
                 stdout.write_all(&buf[..n]).unwrap();
             }
+            stdout.flush().unwrap();
         }
     }
 }

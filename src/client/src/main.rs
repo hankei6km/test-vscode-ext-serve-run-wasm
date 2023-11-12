@@ -37,9 +37,9 @@ enum Commands {
 }
 
 //use std::error::Error;
-//#[tokio::main]
+#[tokio::main]
 //async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-fn main() {
+async fn main() {
     let cli = Cli::parse();
 
     // You can check for the existence of subcommands, and if found use their
@@ -57,7 +57,10 @@ fn main() {
                 memory_shared: *memory_shared,
                 files: files.clone(),
             });
-            cmd.run();
+
+            // ここで落とさないとstinになにか入力するまで runtime が終了しない.
+            // 理由は不明.
+            std::process::exit(cmd.run().await.unwrap().into());
         }
     };
 }
