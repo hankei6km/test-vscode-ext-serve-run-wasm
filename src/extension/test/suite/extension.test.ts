@@ -118,6 +118,11 @@ suite('http servr for run wasm', () => {
         ' 2> test_out/run_err.txt'
     )
 
+    terminal.sendText(
+      `echo "" | ${clientBin} run ${wasmFile} exit 123` +
+        '; echo "${?}" > test_out/run_status.txt'
+    )
+
     terminal.sendText('exit')
 
     // wait terminal is closed
@@ -146,6 +151,18 @@ suite('http servr for run wasm', () => {
         (await vscode.workspace.fs.readFile(filename)).toString(),
         'TEST 456 \n',
         'run_err.txt'
+      )
+    }
+    {
+      const filename = vscode.Uri.joinPath(
+        vscode.workspace.workspaceFolders![0].uri,
+        'test_out',
+        'run_status.txt'
+      )
+      assert.deepEqual(
+        (await vscode.workspace.fs.readFile(filename)).toString(),
+        '123\n',
+        'run_status.txt'
       )
     }
   })

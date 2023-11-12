@@ -43,6 +43,11 @@ fn main() {
                 stdout.write_all(&buf[..n]).unwrap();
             }
             stdout.flush().unwrap();
+        } else if cmd == "exit" {
+            // print exit_status and exit process with exit_status.
+            let exit_status:i32 = args.nth(0).unwrap().parse().unwrap();
+            println!("exit_status: {}", exit_status);
+            std::process::exit(exit_status as i32);
         }
     }
 }
