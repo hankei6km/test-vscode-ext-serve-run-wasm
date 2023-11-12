@@ -6,27 +6,6 @@ import * as assert from 'assert'
 import * as vscode from 'vscode'
 // import * as myExtension from '../extension';
 
-function resToOutput(res: string): [number, string, string] {
-  const ret: [number, string, string] = [0, '', '']
-  // parse res as ndjson
-  res.split('\n').forEach((line) => {
-    if (line === '') return
-    const obj = JSON.parse(line)
-    switch (obj.kind) {
-      case 'out':
-        ret[1] = ret[1] + new TextDecoder().decode(Uint8Array.from(obj.data))
-        break
-      case 'err':
-        ret[2] = ret[2] + new TextDecoder().decode(Uint8Array.from(obj.data))
-        break
-      case 'status':
-        ret[0] = obj.code
-        return
-    }
-  })
-  return ret
-}
-
 suite('environment vriables in teminal', () => {
   vscode.window.showInformationMessage('Start all tests.')
 

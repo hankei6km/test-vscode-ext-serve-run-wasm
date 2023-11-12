@@ -22,13 +22,10 @@ async fn output<T: AsyncWriteExt, U: AsyncWriteExt>(
         // get data(i64 array) as &[u8]
         let data = value["data"].as_array().unwrap();
         let data: Vec<u8> = data.iter().map(|v| v.as_i64().unwrap() as u8).collect();
-        match &value["kind"].as_str().unwrap() {
-            &"out" => writer_out.write_all(&data).await.unwrap(),
-            &"err" => writer_err.write_all(&data).await.unwrap(),
-            _ => {
-                exti_stauts = data[0];
-                //break
-            }
+        match value["kind"].as_str().unwrap() {
+            "out" => writer_out.write_all(&data).await.unwrap(),
+            "err" => writer_err.write_all(&data).await.unwrap(),
+            _ => exti_stauts = data[0],
         }
     }
     writer_out.flush().await.unwrap();
