@@ -56,17 +56,24 @@ export class IpcServer implements Disposable {
       log: true
     })
     channel.info(`Running ${name}...`)
+
+    //const pipeIn = new PassThrough()
+    //req.pipe(pipeIn)
+    //req.on('data', (c) => {
+    //  pipeIn.write(c)
+    //  console.log(c)
+    //})
     const pipeOutErrHandler = (data: any) => {
       res.write(data)
     }
     const pipeOut = new PassThrough()
     pipeOut.on('data', pipeOutErrHandler)
-    pipeOut.on('end', () => {
+    pipeOut.once('end', () => {
       pipeOut.off('data', pipeOutErrHandler)
     })
     const pipeErr = new PassThrough()
     pipeErr.on('data', pipeOutErrHandler)
-    pipeErr.on('end', () => {
+    pipeErr.once('end', () => {
       pipeErr.off('data', pipeOutErrHandler)
     })
     const { route, args } = getRouteAndArgs(req.url || '')
@@ -77,14 +84,18 @@ export class IpcServer implements Disposable {
       console.warn(`IPC handler for ${req.url} not found`)
       return
     }
-    await handler.handle({
+    const ret = await handler.handle({
       cwd: workspace.workspaceFolders?.[0].uri.fsPath ?? '',
       wasmBits: bits,
       args,
+      pipeIn: req,
       pipeOut,
       pipeErr
-    }),
-      res.end()
+    })
+    pipeOut.end()
+    pipeErr.end()
+    res.write(`${JSON.stringify(ret)}\n`)
+    res.end()
   }
   dispose() {
     this.server.off('request', this._handler)

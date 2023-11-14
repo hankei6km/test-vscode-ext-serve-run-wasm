@@ -7,9 +7,10 @@ type PayloadRun = {
   cwd: string
   wasmBits: Uint8Array
   args: ArgsForRun
-  pipIn?: NodeReadable
+  pipeIn?: NodeReadable
   pipeOut?: NodeWritable
   pipeErr?: NodeWritable
+  pipeStatus?: NodeWritable
 }
 
 export type RespRunOut = {
@@ -45,6 +46,8 @@ export class HandleRun implements IpcHandler {
     this.wasm = wasm
   }
   async handle(request: PayloadRun): Promise<any> {
+    let exitStatus: number = 1 // エラーに設定しておく(成功すれば 0 に上書きされる)
+    let process: WasmProcess | undefined
     // run wasm
     //const pty = wasm.createPseudoterminal()
     //const terminal = window.createTerminal({
@@ -56,6 +59,7 @@ export class HandleRun implements IpcHandler {
     //const pipeIn = wasm.createWritable()
     // pty の扱いどうする？
     // (そもそも wasi で pty ってどうなってるの？)
+    const pipeIn = this.wasm.createWritable()
     const handleToOut = getPassHandler('out', request.pipeOut)
     const handleToErr = getPassHandler('err', request.pipeErr)
     const pipeOut = this.wasm.createReadable()
@@ -63,6 +67,7 @@ export class HandleRun implements IpcHandler {
     pipeOut.onData(handleToOut)
     pipeErr.onData(handleToErr)
     const stdio: Stdio = {
+      in: { kind: 'pipeIn', pipe: pipeIn },
       out: { kind: 'pipeOut', pipe: pipeOut },
       err: { kind: 'pipeOut', pipe: pipeErr }
     }
@@ -77,7 +82,6 @@ export class HandleRun implements IpcHandler {
     try {
       const module = await WebAssembly.compile(request.wasmBits)
       const memory = memoryDescriptor(request.args.runArgs)
-      let process: WasmProcess | undefined
 
       if (memory !== undefined) {
         process = await this.wasm.createProcess(
@@ -93,16 +97,28 @@ export class HandleRun implements IpcHandler {
           options
         )
       }
+      ;(async () => {
+        for await (const data of request.pipeIn!) {
+          // await pipeIn.write(data) // await が返ってこない.
+          pipeIn.write(data)
+          if (process === undefined) break
+        }
+        // https://github.com/microsoft/vscode-wasm/issues/143
+        // この辺の暫定的な対応にしたかったが stdio 周りはまだ安定していないようなのであきらめる
+        if (process !== undefined) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * 5))
+          process?.terminate()
+        }
+      })()
       const started = Date.now()
-      await process.run()
+      exitStatus = await process.run()
       if (request.args.runArgs['print-elapsed-time']) {
         handleToOut(Array.from(Buffer.from(`${Date.now() - started}\n`)))
       }
-      request.pipeOut?.end()
-      request.pipeErr?.end()
       // TODO: pipe 用のストリームを開放(おそらく開放されない)
     } catch (err: any) {
       //void pty.write(`Launching python failed: ${err.toString()}`)
     }
+    return { kind: 'status', data: [exitStatus] }
   }
 }
