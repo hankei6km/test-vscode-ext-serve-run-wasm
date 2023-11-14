@@ -97,19 +97,26 @@ export class HandleRun implements IpcHandler {
           options
         )
       }
-      ;(async () => {
-        for await (const data of request.pipeIn!) {
-          // await pipeIn.write(data) // await が返ってこない.
-          pipeIn.write(data)
-          if (process === undefined) break
-        }
-        // https://github.com/microsoft/vscode-wasm/issues/143
-        // この辺の暫定的な対応にしたかったが stdio 周りはまだ安定していないようなのであきらめる
-        if (process !== undefined) {
-          await new Promise((resolve) => setTimeout(resolve, 1000 * 5))
-          process?.terminate()
-        }
-      })()
+      if (
+        typeof request.args.runArgs[
+          'force_exit_after_n_seconds_stdin_is_closed'
+        ] === 'number' &&
+        request.args.runArgs['force_exit_after_n_seconds_stdin_is_closed'] > 0
+      ) {
+        ;(async () => {
+          for await (const data of request.pipeIn!) {
+            // await pipeIn.write(data) // await が返ってこない.
+            pipeIn.write(data)
+            if (process === undefined) break
+          }
+          // https://github.com/microsoft/vscode-wasm/issues/143
+          // この辺の暫定的な対応にしたかったが stdio 周りはまだ安定していないようなのであきらめる
+          if (process !== undefined) {
+            await new Promise((resolve) => setTimeout(resolve, 1000 * 5))
+            process?.terminate()
+          }
+        })()
+      }
       const started = Date.now()
       exitStatus = await process.run()
       if (request.args.runArgs['print-elapsed-time']) {

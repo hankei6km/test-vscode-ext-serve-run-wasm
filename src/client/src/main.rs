@@ -27,6 +27,10 @@ enum Commands {
         #[clap(long, default_value = "true")]
         memory_shared: bool,
 
+        // --force-exit-after-n-seconds-stdin-is-closed
+        #[clap(long, default_value = "0")]
+        force_exit_after_n_seconds_stdin_is_closed: u32,
+
         // specify positional args(filenames etc.)
         // It's required to specify at least one file
         #[clap(name = "FILE", required = true)]
@@ -49,12 +53,15 @@ async fn main() {
             memory_initial,
             memory_maximum,
             memory_shared,
+            force_exit_after_n_seconds_stdin_is_closed,
             files,
         } => {
             let cmd = Run::new(RunArgs {
                 memory_initial: *memory_initial,
                 memory_maximum: *memory_maximum,
                 memory_shared: *memory_shared,
+                force_exit_after_n_seconds_stdin_is_closed:
+                    *force_exit_after_n_seconds_stdin_is_closed,
                 files: files.clone(),
             });
 

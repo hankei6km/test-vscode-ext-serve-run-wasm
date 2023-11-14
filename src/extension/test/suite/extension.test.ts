@@ -119,7 +119,7 @@ suite('http servr for run wasm', () => {
     )
 
     terminal.sendText(
-      `seq 1000 | ${clientBin} run ${wasmFile} pipe` +
+      `seq 1000 | ${clientBin} run ${wasmFile} --force-exit-after-n-seconds-stdin-is-closed 5 pipe` +
         ' | wc -l  > test_out/run_pipe.txt'
     )
 
