@@ -57,25 +57,10 @@ export class IpcServer implements Disposable {
     })
     channel.info(`Running ${name}...`)
 
-    //const pipeIn = new PassThrough()
-    //req.pipe(pipeIn)
-    //req.on('data', (c) => {
-    //  pipeIn.write(c)
-    //  console.log(c)
-    //})
-    const pipeOutErrHandler = (data: any) => {
-      res.write(data)
-    }
+    // stream を分ける必要なかったかな？
+    // 直接 res 渡してもよいか.
     const pipeOut = new PassThrough()
-    pipeOut.on('data', pipeOutErrHandler)
-    pipeOut.once('end', () => {
-      pipeOut.off('data', pipeOutErrHandler)
-    })
     const pipeErr = new PassThrough()
-    pipeErr.on('data', pipeOutErrHandler)
-    pipeErr.once('end', () => {
-      pipeErr.off('data', pipeOutErrHandler)
-    })
     const { route, args } = getRouteAndArgs(req.url || '')
     const bits = await getWasmBits(this.context.extensionUri, args.cmdPath)
 
@@ -84,7 +69,7 @@ export class IpcServer implements Disposable {
       console.warn(`IPC handler for ${req.url} not found`)
       return
     }
-    const ret = await handler.handle({
+    const pRet = handler.handle({
       cwd: workspace.workspaceFolders?.[0].uri.fsPath ?? '',
       wasmBits: bits,
       args,
@@ -92,8 +77,21 @@ export class IpcServer implements Disposable {
       pipeOut,
       pipeErr
     })
-    pipeOut.end()
-    pipeErr.end()
+    const pOut = new Promise<void>(async (resolve) => {
+      for await (const data of pipeOut) {
+        // await new Promise((resolve) => res.write(data, resolve))
+        res.write(data)
+      }
+      resolve()
+    })
+    const pErr = new Promise<void>(async (resolve) => {
+      for await (const data of pipeErr) {
+        res.write(data)
+      }
+      resolve()
+    })
+    await Promise.all([pOut, pErr])
+    const ret = await pRet
     res.write(`${JSON.stringify(ret)}\n`)
     res.end()
   }
