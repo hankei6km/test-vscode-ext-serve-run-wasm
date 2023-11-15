@@ -57,10 +57,6 @@ export class IpcServer implements Disposable {
     })
     channel.info(`Running ${name}...`)
 
-    // stream を分ける必要なかったかな？
-    // 直接 res 渡してもよいか.
-    const pipeOut = new PassThrough()
-    const pipeErr = new PassThrough()
     const { route, args } = getRouteAndArgs(req.url || '')
     const bits = await getWasmBits(this.context.extensionUri, args.cmdPath)
 
@@ -74,23 +70,9 @@ export class IpcServer implements Disposable {
       wasmBits: bits,
       args,
       pipeIn: req,
-      pipeOut,
-      pipeErr
+      pipeOut: res,
+      pipeErr: res
     })
-    const pOut = new Promise<void>(async (resolve) => {
-      for await (const data of pipeOut) {
-        // await new Promise((resolve) => res.write(data, resolve))
-        res.write(data)
-      }
-      resolve()
-    })
-    const pErr = new Promise<void>(async (resolve) => {
-      for await (const data of pipeErr) {
-        res.write(data)
-      }
-      resolve()
-    })
-    await Promise.all([pOut, pErr])
     const ret = await pRet
     res.write(`${JSON.stringify(ret)}\n`)
     res.end()

@@ -126,11 +126,8 @@ export class HandleRun implements IpcHandler {
         (pipeOut as any).chunks.length > 0 ||
         (pipeErr as any).chunks.length > 0
       ) {
-        console.log('waiting for pipe to be empty')
         await new Promise((resolve) => setTimeout(resolve, 100))
       }
-      new Promise((resolve) => request.pipeOut?.end(resolve))
-      new Promise((resolve) => request.pipeErr?.end(resolve))
       if (request.args.runArgs['print-elapsed-time']) {
         handleToOut(Array.from(Buffer.from(`${Date.now() - started}\n`)))
       }
