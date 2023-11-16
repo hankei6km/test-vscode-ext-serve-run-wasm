@@ -48,6 +48,12 @@ fn main() {
             let exit_status:i32 = args.nth(0).unwrap().parse().unwrap();
             println!("exit_status: {}", exit_status);
             std::process::exit(exit_status as i32);
+        } else if cmd == "seq" {
+            // print sequence of numbers.
+            let lim:i32 = args.nth(0).unwrap().parse().unwrap();
+            for i in 1..=lim {
+                println!("{}", i);
+            }
         }
     }
 }

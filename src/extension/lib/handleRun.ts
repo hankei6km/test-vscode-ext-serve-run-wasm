@@ -119,6 +119,15 @@ export class HandleRun implements IpcHandler {
       }
       const started = Date.now()
       exitStatus = await process.run()
+
+      // process.run が完了しても stdio のデータは完全に消費されていない.
+      // 以下は undocumented なので将来的には変更される可能性がある.
+      while (
+        (pipeOut as any).chunks.length > 0 ||
+        (pipeErr as any).chunks.length > 0
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
       if (request.args.runArgs['print-elapsed-time']) {
         handleToOut(Array.from(Buffer.from(`${Date.now() - started}\n`)))
       }

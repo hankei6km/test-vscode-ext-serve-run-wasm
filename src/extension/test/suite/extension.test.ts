@@ -128,6 +128,13 @@ suite('http servr for run wasm', () => {
         '; echo "${?}" > test_out/run_status.txt'
     )
 
+    terminal.sendText(
+      // pipe では read を await してない影響が出始る.
+      // よって .wasm 側からの単純出力になっている.
+      `echo "" | ${clientBin} run ${wasmFile} seq 4000` +
+        ' | sha256sum > test_out/run_seq.txt'
+    )
+
     terminal.sendText('exit')
 
     // wait terminal is closed
@@ -180,6 +187,19 @@ suite('http servr for run wasm', () => {
         (await vscode.workspace.fs.readFile(filename)).toString(),
         '123\n',
         'run_status.txt'
+      )
+    }
+    {
+      const filename = vscode.Uri.joinPath(
+        vscode.workspace.workspaceFolders![0].uri,
+        'test_out',
+        'run_seq.txt'
+      )
+      assert.deepEqual(
+        (await vscode.workspace.fs.readFile(filename)).toString(),
+        // seq 4000 | sha256sum
+        'b5522725f65691de77d329f3124bb1ddcd70e4f201c7a0b6f841c6ee138c37c6  -\n',
+        'run_seq.txt'
       )
     }
   })
