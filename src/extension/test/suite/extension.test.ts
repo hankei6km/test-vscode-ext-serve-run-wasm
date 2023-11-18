@@ -119,8 +119,8 @@ suite('http servr for run wasm', () => {
     )
 
     terminal.sendText(
-      `seq 1000 | ${clientBin} run ${wasmFile} --force-exit-after-n-seconds-stdin-is-closed 5 pipe` +
-        ' | wc -l  > test_out/run_pipe.txt'
+      `seq 10000 | ${clientBin} run ${wasmFile} --force-exit-after-n-seconds-stdin-is-closed 5 pipe` +
+        ' | sha256sum> test_out/run_pipe.txt'
     )
 
     terminal.sendText(
@@ -129,9 +129,7 @@ suite('http servr for run wasm', () => {
     )
 
     terminal.sendText(
-      // pipe では read を await してない影響が出始る.
-      // よって .wasm 側からの単純出力になっている.
-      `echo "" | ${clientBin} run ${wasmFile} seq 4000` +
+      `echo "" | ${clientBin} run ${wasmFile} seq 10000` +
         ' | sha256sum > test_out/run_seq.txt'
     )
 
@@ -173,7 +171,7 @@ suite('http servr for run wasm', () => {
       )
       assert.deepEqual(
         (await vscode.workspace.fs.readFile(filename)).toString(),
-        '1000\n',
+        '8060aa0ac20a3e5db2b67325c98a0122f2d09a612574458225dcb9a086f87cc3  -\n',
         'run_pipe.txt'
       )
     }
@@ -198,7 +196,7 @@ suite('http servr for run wasm', () => {
       assert.deepEqual(
         (await vscode.workspace.fs.readFile(filename)).toString(),
         // seq 4000 | sha256sum
-        'b5522725f65691de77d329f3124bb1ddcd70e4f201c7a0b6f841c6ee138c37c6  -\n',
+        '8060aa0ac20a3e5db2b67325c98a0122f2d09a612574458225dcb9a086f87cc3  -\n',
         'run_seq.txt'
       )
     }

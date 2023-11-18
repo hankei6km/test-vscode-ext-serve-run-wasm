@@ -59,17 +59,12 @@ export class HandleRun implements IpcHandler {
     //const pipeIn = wasm.createWritable()
     // pty の扱いどうする？
     // (そもそも wasi で pty ってどうなってるの？)
-    const pipeIn = this.wasm.createWritable()
     const handleToOut = getPassHandler('out', request.pipeOut)
     const handleToErr = getPassHandler('err', request.pipeErr)
-    const pipeOut = this.wasm.createReadable()
-    const pipeErr = this.wasm.createReadable()
-    pipeOut.onData(handleToOut)
-    pipeErr.onData(handleToErr)
     const stdio: Stdio = {
-      in: { kind: 'pipeIn', pipe: pipeIn },
-      out: { kind: 'pipeOut', pipe: pipeOut },
-      err: { kind: 'pipeOut', pipe: pipeErr }
+      in: { kind: 'pipeIn' },
+      out: { kind: 'pipeOut' },
+      err: { kind: 'pipeOut' }
     }
     const options: ProcessOptions = {
       stdio,
@@ -104,29 +99,54 @@ export class HandleRun implements IpcHandler {
         request.args.runArgs['force_exit_after_n_seconds_stdin_is_closed'] > 0
       ) {
         ;(async () => {
-          for await (const data of request.pipeIn!) {
-            // await pipeIn.write(data) // await が返ってこない.
-            pipeIn.write(data)
-            if (process === undefined) break
-          }
+          // https://github.com/microsoft/vscode-wasm/issues/110
+          // 大きいデータを write すると不安定になる.
           // https://github.com/microsoft/vscode-wasm/issues/143
-          // この辺の暫定的な対応にしたかったが stdio 周りはまだ安定していないようなのであきらめる
-          if (process !== undefined) {
-            await new Promise((resolve) => setTimeout(resolve, 1000 * 5))
-            process?.terminate()
+          // この辺の暫定的な対応にしたかったが stdin を終了させる方法は実装されていななさそう
+          // end() は定義されているが空の関数.
+          if (process?.stdin !== undefined) {
+            const chunkSize = 4096 // It worked fine up to 8096 as far as I tested.
+            for await (const data of request.pipeIn!) {
+              // await will not complete when the number of write operations or data volume increases.
+              // Divide the data into chunks of size chunkSize and write them.
+              for (let i = 0; i < data.length; i += chunkSize) {
+                const chunk = data.slice(i, i + chunkSize)
+                await process.stdin?.write(chunk)
+                // Wait for the chunk to be consumed because holding too many chunks can cause instability
+                // "process.stdin.chunks" is undocumented, so it may change in the future.
+                while ((process.stdin as any).chunks.length > 0) {
+                  await new Promise((resolve) => setTimeout(resolve, 100))
+                }
+              }
+              if (process === undefined) break
+            }
+            await new Promise((resolve) =>
+              setTimeout(
+                resolve,
+                1000 *
+                  request.args.runArgs[
+                    'force_exit_after_n_seconds_stdin_is_closed'
+                  ]
+              )
+            )
+            process.terminate()
           }
         })()
       }
+      process?.stdout?.onData(handleToOut)
+      process?.stderr?.onData(handleToErr)
       const started = Date.now()
       exitStatus = await process.run()
 
-      // process.run が完了しても stdio のデータは完全に消費されていない.
-      // 以下は undocumented なので将来的には変更される可能性がある.
-      while (
-        (pipeOut as any).chunks.length > 0 ||
-        (pipeErr as any).chunks.length > 0
-      ) {
-        await new Promise((resolve) => setTimeout(resolve, 100))
+      // stdout and stderr data is not completely consumed even after "process.run()" completes.
+      // "process.stdin.chunks" is undocumented, so it may change in the future.
+      if (process?.stdout != undefined && process?.stderr != undefined) {
+        while (
+          (process.stdout as any).chunks.length > 0 ||
+          (process.stderr as any).chunks.length > 0
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
       }
       if (request.args.runArgs['print-elapsed-time']) {
         handleToOut(Array.from(Buffer.from(`${Date.now() - started}\n`)))
