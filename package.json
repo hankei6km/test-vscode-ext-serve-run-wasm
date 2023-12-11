@@ -55,7 +55,7 @@
     "@types/minimist": "^1.2.5",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.3",
-    "@types/vscode": "^1.84.2",
+    "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.3.8",
     "@vscode/vsce": "^2.22.0",
     "assert": "^2.1.0",
